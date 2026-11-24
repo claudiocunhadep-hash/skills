@@ -530,7 +530,9 @@ def _synth_edge_once(spoken, voice, rate, part_file):
     boundaries = []
 
     async def _run():
-        tts = edge_tts.Communicate(spoken, voice, rate=rate, boundary="WordBoundary")
+        # aiohttp ignores HTTPS_PROXY by default; pass it so edge-tts works behind a proxy
+        proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or None
+        tts = edge_tts.Communicate(spoken, voice, rate=rate, boundary="WordBoundary", proxy=proxy)
         async for chunk in tts.stream():
             ctype = chunk.get("type")
             if ctype == "audio":
