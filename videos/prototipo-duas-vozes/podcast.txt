@@ -1,0 +1,8 @@
+[SECTION:hook|gancho] (voz masculina)
+Valeu a pena votar nele!
+[SECTION:litoral|litoral] (voz masculina)
+Meu deputado trabalhou pelo litoral.
+[SECTION:tocantina|região tocantina] (voz feminina)
+Meu deputado trabalhou muito na região Tocantina.
+[SECTION:fechamento|fechamento] (voz feminina)
+Valeu a pena votar nele!
