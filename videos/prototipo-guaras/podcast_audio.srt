@@ -1,0 +1,16 @@
+1
+00:00:00,400 --> 00:00:03,016
+Valeu a pena votar nele!
+
+2
+00:00:03,466 --> 00:00:06,562
+Meu deputado trabalhou pelo litoral.
+
+3
+00:00:07,012 --> 00:00:10,900
+Meu deputado trabalhou muito na região Tocantina.
+
+4
+00:00:11,350 --> 00:00:13,726
+Valeu a pena votar nele!
+
