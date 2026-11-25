@@ -92,16 +92,28 @@ def guara(open_amt, female, blink=False):
         for a in (-60, -30, 0):  # cílios
             r = math.radians(a - 90)
             d.line(S([(ex + 17*math.cos(r), ey + 17*math.sin(r)), (ex + 30*math.cos(r), ey + 30*math.sin(r))]), fill=(25, 20, 25), width=4*SS)
-        fx, fy = hx - 40, hy - 52  # flor na cabeça
-        for k in range(5):
-            r = math.radians(k * 72)
-            d.ellipse(box(fx + 17*math.cos(r) - 14, fy + 17*math.sin(r) - 14, fx + 17*math.cos(r) + 14, fy + 17*math.sin(r) + 14), fill=(255, 236, 120))
-        d.ellipse(box(fx-10, fy-10, fx+10, fy+10), fill=(255, 150, 40))
     else:
         bx, by = hx - 20, hy + 70  # gravatinha-borboleta
         d.polygon(S([(bx, by), (bx-34, by-20), (bx-34, by+20)]), fill=NAVY)
         d.polygon(S([(bx, by), (bx+34, by-20), (bx+34, by+20)]), fill=NAVY)
         d.ellipse(box(bx-9, by-9, bx+9, by+9), fill=YEL)
+    # chapéu de palha (fita azul nele; fita rosa com flor nela)
+    straw, straw_d = (232, 196, 120), (190, 150, 80)
+    d.ellipse(box(hx-110, hy-78, hx+100, hy-36), fill=straw_d)
+    d.ellipse(box(hx-106, hy-82, hx+96, hy-42), fill=straw)
+    d.rounded_rectangle(box(hx-60, hy-150, hx+50, hy-58), radius=34*SS, fill=straw)
+    for k in range(-56, 50, 12):  # trançado da palha
+        d.line(S([(hx+k, hy-146), (hx+k+8, hy-62)]), fill=straw_d, width=2*SS)
+    for k in range(-100, 92, 14):
+        d.line(S([(hx+k, hy-66), (hx+k+10, hy-48)]), fill=straw_d, width=2*SS)
+    band = (255, 120, 170) if female else NAVY
+    d.rectangle(box(hx-60, hy-84, hx+50, hy-64), fill=band)
+    if female:
+        fx, fy = hx + 30, hy - 78
+        for k in range(5):
+            r = math.radians(k * 72)
+            d.ellipse(box(fx + 15*math.cos(r) - 12, fy + 15*math.sin(r) - 12, fx + 15*math.cos(r) + 12, fy + 15*math.sin(r) + 12), fill=(255, 236, 120))
+        d.ellipse(box(fx-9, fy-9, fx+9, fy+9), fill=(255, 150, 40))
     return im.resize((CW, CH), Image.LANCZOS)
 
 cache = {}
@@ -112,20 +124,14 @@ def sprite(who, lvl, blink):
         cache[k] = g.transpose(Image.FLIP_LEFT_RIGHT) if who == "F" else g
     return cache[k]
 
-# ---- cenário: céu, sol, mangue, mar e areia
-bg = Image.new("RGB", (W, H)); d = ImageDraw.Draw(bg)
-for y in range(H):
-    k = y / 1250
-    c = tuple(int(a*(1-k) + b*k) for a, b in zip((70, 150, 225), (255, 205, 150))) if y < 1250 else (0, 0, 0)
-    d.line([(0, y), (W, y)], fill=c)
-d.ellipse([720, 980, 960, 1220], fill=(255, 226, 120))
-for x in range(-40, W + 80, 90):
-    d.ellipse([x, 1150, x + 150, 1290], fill=(40, 110, 70))
-d.rectangle([0, 1250, W, 1420], fill=(40, 130, 170))
-for y in range(1270, 1420, 34):
-    d.line([(0, y), (W, y)], fill=(90, 170, 200), width=3)
-d.rectangle([0, 1420, W, H], fill=(236, 210, 160))
-bg = bg.convert("RGBA")
+# ---- cenário (ver cenario.py)
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent)); import cenario
+bg = cenario.build(W, H)
+from PIL import ImageFilter
+_sh = Image.new("RGBA", (W, H)); _d = ImageDraw.Draw(_sh)
+for cx in (200, W - 200): _d.ellipse([cx - 120, 1588, cx + 120, 1622], fill=(60, 40, 20, 90))
+bg = Image.alpha_composite(bg, _sh.filter(ImageFilter.GaussianBlur(9)))  # sombra dos guarás na areia
+
 
 def wrap(text, f, maxw):
     out, cur = [], ""
