@@ -512,21 +512,65 @@ lr = nt.nodes.new('ShaderNodeValToRGB'); lr.color_ramp.elements[0].color = srgb(
 nt.links.new(ln.outputs['Fac'], lr.inputs['Fac']); nt.links.new(lr.outputs['Color'], lb.inputs['Base Color'])
 tex = bpy.data.textures.new('nuvem', 'CLOUDS'); tex.noise_scale = 0.18
 
+# folha de mangue (elíptica, levemente dobrada) usada como instância
+LEAF.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.55; LEAF.node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value = 0.2
+_bm = bmesh.new()
+_pts = []
+for i in range(7):
+    u = i / 6; w = 0.5 * math.sin(math.pi * u) ** 0.8
+    _pts.append((_bm.verts.new((u - 0.5, -w * 0.45, 0.06 * (w * w))), _bm.verts.new((u - 0.5, 0, -0.05)), _bm.verts.new((u - 0.5, w * 0.45, 0.06 * (w * w)))))
+for i in range(6):
+    _bm.faces.new((_pts[i][0], _pts[i + 1][0], _pts[i + 1][1], _pts[i][1]))
+    _bm.faces.new((_pts[i][1], _pts[i + 1][1], _pts[i + 1][2], _pts[i][2]))
+_bm.free()
+LEAF_DARK, _ = principled('folha_escura', 0x0b1606, 0.9)
+
 def mangrove(x, y, sc):
-    for k in range(9):
-        a = k / 9 * 2 * math.pi + random.uniform(-0.3, 0.3)
-        r = random.uniform(1.1, 1.8) * sc
-        p0 = Vector((x + math.cos(a) * r, y + math.sin(a) * r, 0)); p3 = Vector((x, y, 1.6 * sc))
-        pts = bez(p0, p0 + Vector((0, 0, 0.9 * sc)), Vector((x + math.cos(a) * r * 0.4, y + math.sin(a) * r * 0.4, 1.5 * sc)), p3, 10)
-        obj_from_bm('raiz', tube(pts, [0.035 * sc] * 10, 7), ROOTM)
-    obj_from_bm('tronco', tube([Vector((x, y, 1.4 * sc)), Vector((x + 0.1, y, 3.2 * sc))], [0.09 * sc, 0.07 * sc], 8), ROOTM)
-    for k in range(45):
-        bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=2, radius=random.uniform(0.35, 0.7) * sc)
-        o = obj_from_bm('copa', bm, LEAF)
+    for k in range(16):
+        a = k / 16 * 2 * math.pi + random.uniform(-0.25, 0.25)
+        r = random.uniform(0.9, 2.0) * sc
+        top = Vector((x + random.uniform(-0.2, 0.2) * sc, y + random.uniform(-0.2, 0.2) * sc, random.uniform(1.2, 1.9) * sc))
+        p0 = Vector((x + math.cos(a) * r, y + math.sin(a) * r, -0.05))
+        pts = bez(p0, p0 + Vector((0, 0, random.uniform(0.6, 1.1) * sc)), Vector((x + math.cos(a) * r * 0.45, y + math.sin(a) * r * 0.45, top.z + 0.1 * sc)), top, 12)
+        rd = random.uniform(0.018, 0.034) * sc
+        obj_from_bm('raiz', tube(pts, [rd * (0.8 + 0.4 * i / 11) for i in range(12)], 6), ROOTM)
+    obj_from_bm('tronco', tube([Vector((x, y, 1.2 * sc)), Vector((x + 0.15 * sc, y, 2.4 * sc)), Vector((x + 0.05, y + 0.1, 3.4 * sc))], [0.1 * sc, 0.085 * sc, 0.06 * sc], 8), ROOTM)
+    for k in range(6):   # galhos
+        a = random.uniform(0, 2 * math.pi); L_ = random.uniform(1.0, 1.9) * sc
+        p0 = Vector((x + 0.1 * sc, y, random.uniform(2.2, 3.2) * sc))
+        p1 = p0 + Vector((math.cos(a) * L_, math.sin(a) * L_ * 0.7, random.uniform(0.4, 1.0) * sc))
+        obj_from_bm('galho', tube([p0, p0.lerp(p1, 0.5) + Vector((0, 0, 0.15 * sc)), p1], [0.045 * sc, 0.03 * sc, 0.015 * sc], 6), ROOTM)
+    # copa: folhas de verdade (quadrinhos) em camadas, com miolo escuro
+    import numpy as np
+    rng = np.random.default_rng(random.randint(0, 99999))
+    verts = []; 
+    for k in range(30):
+        R = random.uniform(0.45, 0.8) * sc
         a = random.uniform(0, 2 * math.pi); rr = random.uniform(0, 2.2) * sc
-        o.location = (x + math.cos(a) * rr, y + math.sin(a) * rr * 0.7, random.uniform(2.6, 4.8) * sc - rr * 0.25)
-        d = o.modifiers.new('d', 'DISPLACE'); d.texture = tex; d.strength = 0.6 * sc
-for (x, y, sc) in ((-5, 14, 1.1), (1.5, 17, 1.3), (7, 13, 1.0), (-11, 20, 1.4), (11, 22, 1.5), (-2, 26, 1.6), (16, 28, 1.4), (-17, 27, 1.5), (5, 32, 1.8), (-8, 36, 1.7)):
+        c = np.array((x + math.cos(a) * rr, y + math.sin(a) * rr * 0.7, random.uniform(2.8, 4.8) * sc - rr * 0.25))
+        n = int(520 * sc * sc)
+        d = rng.normal(size=(n, 3)); d /= np.linalg.norm(d, axis=1)[:, None]
+        d[:, 2] = np.abs(d[:, 2]) * 0.9 + d[:, 2] * 0.1 if False else d[:, 2]
+        pos = c + d * R * rng.uniform(0.55, 1.0, (n, 1)) ** 0.5
+        # orientação: eixo da folha ~ tangente, aleatório
+        u = rng.normal(size=(n, 3)); u -= (u * d).sum(1)[:, None] * d; u /= np.linalg.norm(u, axis=1)[:, None]
+        v = np.cross(d, u)
+        tilt = rng.uniform(-0.6, 0.6, (n, 1))
+        nrm = d * np.cos(tilt) + u * np.sin(tilt)
+        L_ = 0.16 * sc * rng.uniform(0.6, 1.2, (n, 1)); W_ = L_ * 0.42
+        p0 = pos - u * L_ * 0.5; p2 = pos + u * L_ * 0.5
+        p1 = pos + v * W_ * 0.5 + nrm * L_ * 0.05; p3 = pos - v * W_ * 0.5 + nrm * L_ * 0.05
+        verts.append(np.stack([p0, p1, p2, p3], 1).reshape(-1, 3))
+        bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=1, radius=R * 0.6)
+        o = obj_from_bm('miolo', bm, LEAF_DARK); o.location = tuple(c)
+    V = np.concatenate(verts); nq = len(V) // 4
+    me = bpy.data.meshes.new('folhas'); me.vertices.add(len(V)); me.vertices.foreach_set('co', V.astype(np.float32).ravel())
+    me.loops.add(nq * 4); me.loops.foreach_set('vertex_index', np.arange(nq * 4, dtype=np.int32))
+    me.polygons.add(nq); me.polygons.foreach_set('loop_start', np.arange(0, nq * 4, 4, dtype=np.int32))
+    me.update(); me.materials.append(LEAF)
+    o = bpy.data.objects.new('folhas', me); col.objects.link(o)
+for (x, y, sc) in ((-5, 14, 1.1), (1.5, 17, 1.3), (7, 13, 1.0), (-11, 20, 1.4), (11, 22, 1.5), (-2, 26, 1.6), (16, 28, 1.4), (-17, 27, 1.5), (5, 32, 1.8), (-8, 36, 1.7),
+                  (-14, 15, 1.2), (14, 17, 1.2), (-6, 22, 1.3), (8, 25, 1.4), (-22, 32, 1.6), (21, 34, 1.6), (0, 40, 1.9), (12, 40, 1.8), (-13, 43, 1.9)):
     mangrove(x * 1.5, y * 1.7, sc * 1.1)
 # ---------------------------------------------------------------- câmera
 cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d); col.objects.link(cam); scene.camera = cam
