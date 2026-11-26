@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guará Mascote 3D</title>
+<style>
+  :root { --bg:#f6efe6; --ink:#2a1a14; --muted:#7a5f52; --card:#fffaf4; --line:#e6d6c6; --accent:#d7301f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#1b1412; --ink:#f4e9e1; --muted:#bba597; --card:#261c19; --line:#3d2e29; --accent:#ff5a43; } }
+  :root[data-theme="dark"] { --bg:#1b1412; --ink:#f4e9e1; --muted:#bba597; --card:#261c19; --line:#3d2e29; --accent:#ff5a43; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body.render { background:#000; overflow:hidden; }
+  .wrap { max-width:1000px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: minmax(0,420px) minmax(0,1fr); align-items:start; }
+  @media (max-width:760px) { .wrap { grid-template-columns: minmax(0,1fr); } }
+  .stage { position:relative; width:100%; aspect-ratio:9/16; border-radius:18px; overflow:hidden; background:#e88a4a; }
+  .stage canvas { width:100% !important; height:100% !important; display:block; }
+  .cap { position:absolute; left:6%; right:6%; bottom:6%; text-align:center; font-weight:800; font-size:clamp(15px,4.4vw,22px); line-height:1.25; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.6); pointer-events:none; }
+  body.render .wrap { display:block; padding:0; max-width:none; }
+  body.render .stage { width:1080px; height:1920px; aspect-ratio:auto; border-radius:0; }
+  body.render .panel, body.render .cap { display:none; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; display:grid; gap:12px; }
+  h1 { margin:0; font-size:22px; } p { margin:0; color:var(--muted); line-height:1.5; }
+  textarea { width:100%; min-height:150px; resize:vertical; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); padding:12px; font:inherit; font-size:16px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  button { border:0; border-radius:999px; padding:12px 18px; font:inherit; font-weight:700; cursor:pointer; background:var(--accent); color:#fff; }
+  button.sec { background:transparent; color:var(--ink); border:1px solid var(--line); }
+  select { border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); padding:10px; font:inherit; max-width:100%; }
+  .note { font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage"><div class="cap" id="cap"></div></div>
+  <div class="panel">
+    <h1>Guará, o mascote</h1>
+    <p>Escreva o texto e clique em <b>Narrar</b>: o guará fala, mexe o bico e bate as asas.</p>
+    <textarea id="txt">Olá, Maranhão! Eu sou o Guará, o mascote do mandato do deputado Cláudio Cunha. Sou a ave vermelha mais bonita do nosso litoral, e moro nos manguezais aqui da nossa região. Bora voar junto com a gente!</textarea>
+    <div class="row">
+      <button id="speak">Narrar</button>
+      <button class="sec" id="stop">Parar</button>
+      <button class="sec" id="flap">Bater asas</button>
+    </div>
+    <select id="voice"></select>
+    <p class="note">A voz desta página é a do seu navegador. A voz dos vídeos é outra, de melhor qualidade.</p>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

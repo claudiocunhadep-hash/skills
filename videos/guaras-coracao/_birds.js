@@ -1,0 +1,250 @@
+
+camera.position.set(0, 4.9, 17.5);
+camera.lookAt(0, 4.3, 0);
+Object.assign(key.shadow.camera, { left:-7, right:7, top:10, bottom:-4 });
+key.shadow.camera.updateProjectionMatrix();
+
+const smooth = x => x<=0?0:x>=1?1:x*x*(3-2*x);
+const lerp = (a,b,k)=>a+(b-a)*k;
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+
+function taperTube(points, r0, r1, seg, rad, mat){
+  const curve = new THREE.CatmullRomCurve3(points);
+  const geo = new THREE.TubeGeometry(curve, seg, 1, rad, false);
+  const pos = geo.attributes.position, v = new THREE.Vector3();
+  for (let i=0;i<=seg;i++){
+    const u = i/seg, c = curve.getPointAt(u), r = r0 + (r1-r0)*Math.pow(u, 1.1);
+    for (let j=0;j<=rad;j++){ const k = i*(rad+1)+j; v.fromBufferAttribute(pos, k).sub(c).multiplyScalar(r).add(c); pos.setXYZ(k, v.x, v.y, v.z); }
+  }
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, mat);
+}
+const M = (c, r=0.55, extra={}) => new THREE.MeshStandardMaterial(Object.assign({ color:c, roughness:r }, extra));
+
+function makeBird(female){
+  const red = M(female ? 0xe8402c : 0xe0341f), redDeep = M(female ? 0xcf2c1f : 0xc42416, 0.6);
+  const black = M(0x1d1414, 0.5), beakMat = M(0x3a2622, 0.35), legMat = M(0xe2574a, 0.5);
+  const white = M(0xffffff, 0.2), pupilMat = M(0x120c0b, 0.15), straw = M(0xe9c77b, 0.85);
+  const SC = female ? 0.7 : 0.75;
+  const root = new THREE.Group(), yawG = new THREE.Group(), pitchG = new THREE.Group(), content = new THREE.Group();
+  root.add(yawG); yawG.add(pitchG); pitchG.add(content);
+  content.scale.setScalar(SC); content.position.y = -2.15*SC;
+  scene.add(root);
+
+  const torso = new THREE.Group(); torso.position.y = 2.15; content.add(torso);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 36), red); body.scale.set(0.78, 0.72, 1.15); body.rotation.x = -0.3; torso.add(body);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 24), redDeep); belly.scale.set(0.82, 0.78, 0.9); belly.position.set(0, -0.12, 0.3); torso.add(belly);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.1, 18), red); tail.rotation.x = -1.9; tail.position.set(0, -0.35, -1.15); tail.scale.z = 0.5; torso.add(tail);
+  const neck = taperTube([new THREE.Vector3(0,0.35,0.75), new THREE.Vector3(0,1.0,1.05), new THREE.Vector3(0,1.5,0.7), new THREE.Vector3(0,1.95,0.8)], 0.3, 0.2, 30, 18, red); torso.add(neck);
+
+  const headPivot = new THREE.Group(); headPivot.position.set(0, 1.95, 0.8); torso.add(headPivot);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 40, 32), red); head.scale.set(1, 0.95, 1.05); head.position.set(0, 0.28, 0.05); headPivot.add(head);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.4, 28, 20), redDeep); face.scale.set(1.12, 0.75, 0.8); face.position.set(0, 0.24, 0.3); headPivot.add(face);
+  const eyes = [];
+  [-1,1].forEach(s=>{
+    const eg = new THREE.Group(); eg.position.set(0.25*s, 0.44, 0.48); eg.rotation.y = 0.32*s; headPivot.add(eg);
+    const ew = new THREE.Mesh(new THREE.SphereGeometry(0.2, 28, 20), white); ew.scale.z = 0.7; eg.add(ew);
+    const pu = new THREE.Mesh(new THREE.SphereGeometry(0.115, 24, 16), pupilMat); pu.position.set(-0.012*s, 0, 0.12); pu.scale.z = 0.6; eg.add(pu);
+    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), new THREE.MeshBasicMaterial({ color:0xffffff })); hl.position.set(0.04, 0.05, 0.19); eg.add(hl);
+    const lid = new THREE.Mesh(new THREE.SphereGeometry(0.212, 28, 20, 0, Math.PI*2, 0, Math.PI/2), red); lid.scale.z = 0.75; lid.rotation.x = -1.6; eg.add(lid);
+    if (female){ // cílios
+      for (let k=0;k<3;k++){
+        const l = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.008, 0.16, 6), black);
+        const a = (k-1)*0.45 + s*0.35;
+        l.position.set(Math.sin(a)*0.2, 0.17 + Math.cos(a)*0.03, 0.06); l.rotation.z = -a*1.1; l.rotation.x = -0.4; eg.add(l);
+      }
+    }
+    eyes.push({ eg, lid });
+  });
+  const beakPivot = new THREE.Group(); beakPivot.position.set(0, 0.14, 0.55); headPivot.add(beakPivot);
+  const bp = (y,z)=>new THREE.Vector3(0,y,z);
+  const upper = taperTube([bp(0.02,0), bp(-0.02,0.55), bp(-0.22,1.05), bp(-0.55,1.45)], 0.13, 0.025, 40, 14, beakMat); upper.scale.x = 1.1; beakPivot.add(upper);
+  const tip = new THREE.Object3D(); tip.position.set(0, -0.56, 1.47); beakPivot.add(tip);
+  const lowerPivot = new THREE.Group(); lowerPivot.position.set(0, -0.04, 0); beakPivot.add(lowerPivot);
+  const lower = taperTube([bp(-0.04,0), bp(-0.09,0.5), bp(-0.28,0.98), bp(-0.6,1.36)], 0.1, 0.02, 40, 14, beakMat); lower.scale.x = 0.95; lowerPivot.add(lower);
+  const mouthIn = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), M(0x7a1f1a)); mouthIn.position.set(0,-0.02,0.08); mouthIn.scale.set(1,0.6,1.6); beakPivot.add(mouthIn);
+
+  // chapéu de palha
+  const hat = new THREE.Group(); hat.position.set(0, 0.8, -0.02); hat.rotation.set(-0.12, 0, female ? -0.14 : 0.1); headPivot.add(hat);
+  hat.add(new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.0, 0.05, 48), straw));
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.42, 40), straw); crown.position.y = 0.22; hat.add(crown);
+  const ct = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 12, 0, Math.PI*2, 0, Math.PI/2), straw); ct.scale.y = 0.25; ct.position.y = 0.43; hat.add(ct);
+  const hb = new THREE.Mesh(new THREE.CylinderGeometry(0.505, 0.51, 0.1, 40, 1, true), M(female ? 0xe2508c : 0x1f3f8a, 0.6)); hb.position.y = 0.08; hat.add(hb);
+  if (female){ // flor no chapéu
+    const fl = new THREE.Group(); fl.position.set(0.36, 0.16, 0.36); fl.rotation.set(0.2, 0.75, 0); hat.add(fl);
+    const petal = M(0xff6fa8, 0.5);
+    for (let i=0;i<6;i++){ const p = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10), petal); const a = i/6*Math.PI*2; p.position.set(Math.cos(a)*0.12, Math.sin(a)*0.12, 0); p.scale.set(1.3, 0.8, 0.35); p.rotation.z = a; fl.add(p); }
+    const c = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), M(0xffd23c, 0.4)); c.position.z = 0.03; fl.add(c);
+  } else { // gravata azul
+    const tie = new THREE.Group(); tie.position.set(0, 0.55, 1.28); tie.rotation.x = 0.15; torso.add(tie);
+    const tieMat = M(0x2457c5, 0.45);
+    [-1,1].forEach(s=>{ const c = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 20), tieMat); c.rotation.z = s*Math.PI/2; c.position.x = 0.15*s; c.scale.z = 0.5; tie.add(c); });
+    tie.add(new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), tieMat));
+  }
+
+  function makeWing(s){
+    const shoulder = new THREE.Group(); shoulder.position.set(0.62*s, 0.3, 0.35); torso.add(shoulder);
+    const arm = new THREE.Group(); shoulder.add(arm);
+    const cov = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), red); cov.scale.set(0.95, 0.16, 0.55); cov.position.set(0.85*s, 0, 0); arm.add(cov);
+    const hand = new THREE.Group(); hand.position.set(1.65*s, 0, 0); arm.add(hand);
+    const cov2 = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 16), red); cov2.scale.set(0.75, 0.13, 0.48); cov2.position.set(0.55*s, 0, -0.05); hand.add(cov2);
+    for (let i=0;i<5;i++){
+      const f = new THREE.Group(); f.position.set((0.75+i*0.12)*s, 0, 0.25-i*0.16); f.rotation.y = -s*(0.15+i*0.17); hand.add(f);
+      const fr = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), red); fr.scale.set(0.45, 0.05, 0.12); fr.position.x = 0.3*s; f.add(fr);
+      const fb = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), black); fb.scale.set(0.38, 0.055, 0.11); fb.position.x = 0.75*s; f.add(fb);
+    }
+    return { shoulder, arm, hand, s };
+  }
+  const wings = [makeWing(-1), makeWing(1)];
+
+  const legs = new THREE.Group(); legs.position.y = 1.75; content.add(legs);
+  [-1,1].forEach(s=>{
+    const add = (m, x, y, z)=>{ m.position.set(x, y-1.75, z); legs.add(m); return m; };
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.06, 1.0, 12), legMat), 0.28*s, 1.25, 0.05).rotation.x = 0.12;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.9, 12), legMat), 0.28*s, 0.65, 0).rotation.x = -0.12;
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), legMat), 0.28*s, 1.13, 0);
+    for (let k=-1;k<=1;k++){ const t = add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.55, 8), legMat), 0.28*s + Math.sin(k*0.45)*0.24, 0.26, 0.24); t.rotation.x = Math.PI/2; t.rotation.z = k*0.45; }
+  });
+  root.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; if(m.material.color && !m.material.userData.lin){ m.material.color.convertSRGBToLinear(); m.material.userData.lin = 1; } } });
+  return { root, yawG, pitchG, torso, headPivot, lowerPivot, upper, eyes, wings, legs, tip, SC, female, blinkOff: female ? 1.3 : 0 };
+}
+
+function wingPose(w, t, open){
+  const s = w.s, k = 1-open, flap = Math.sin(t*13);
+  w.arm.rotation.set(k*1.45, 0, 0); w.arm.scale.setScalar(0.62 + 0.38*open);
+  w.shoulder.rotation.set(0, s*(1.5*k + 0.35*open), -s*0.35*k + open*s*(0.25 + 0.75*flap));
+  w.hand.rotation.set(0, s*0.12*k, open*s*0.45*flap);
+}
+
+const male = makeBird(false), fem = makeBird(true);
+const GROUND = 0.25;
+const STAND = { m:{ x:-1.3, z:0.4, yaw:0.5 }, f:{ x:1.3, z:0.4, yaw:-0.5 } };
+
+// ---------- coração ----------
+const HK = 0.12, HCY = 6.04;
+function heartPt(t){ const s = Math.sin(t); return new THREE.Vector3(16*s*s*s*HK, (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t))*HK + HCY, 0); }
+// macho: metade esquerda (t de π a 2π); fêmea: metade direita (t de π a 0)
+const halfPt = (fem_, u) => heartPt(fem_ ? Math.PI*(1-u) : Math.PI*(1+u));
+const heartG = new THREE.Group(); heartG.position.set(0, 5.5, -0.2); scene.add(heartG);
+const lineMat = new THREE.MeshBasicMaterial({ color:0xff2d55, fog:false });
+const glowMat = new THREE.MeshBasicMaterial({ color:0xff7a9a, transparent:true, opacity:0.35, fog:false, depthWrite:false });
+const trails = [null, null];
+function setTrail(i, u){
+  if (trails[i]) { trails[i].forEach(m=>{ heartG.remove(m); m.geometry.dispose(); }); trails[i] = null; }
+  if (u <= 0.005) return;
+  const n = Math.max(3, Math.ceil(u*90)), pts = [];
+  for (let k=0;k<=n;k++){ const p = halfPt(i===1, u*k/n); p.sub(heartG.position); p.z = 0; pts.push(p); }
+  const c = new THREE.CatmullRomCurve3(pts);
+  const a = new THREE.Mesh(new THREE.TubeGeometry(c, n*2, 0.07, 10), lineMat);
+  const b = new THREE.Mesh(new THREE.TubeGeometry(c, n*2, 0.17, 10), glowMat);
+  heartG.add(a); heartG.add(b); trails[i] = [a, b];
+}
+lineMat.color.convertSRGBToLinear(); glowMat.color.convertSRGBToLinear();
+// recheio do coração
+const shape = new THREE.Shape();
+for (let k=0;k<=120;k++){ const p = heartPt(k/120*Math.PI*2).sub(heartG.position); k ? shape.lineTo(p.x, p.y) : shape.moveTo(p.x, p.y); }
+const fillMat = new THREE.MeshBasicMaterial({ color:0xff3355, transparent:true, opacity:0, fog:false, depthWrite:false });
+fillMat.color.convertSRGBToLinear();
+const fill = new THREE.Mesh(new THREE.ShapeGeometry(shape), fillMat); fill.position.z = -0.05; heartG.add(fill);
+
+// ---------- linha do tempo ----------
+const T_IN = 0, T_DRAW = 2.0, T_LAND = 5.6, T_STAND = 7.2;
+const ENTRY = {
+  m: [new THREE.Vector3(7.5, 2.6, 0.35), new THREE.Vector3(2.6, 3.0, 0.35), halfPt(false, 0).setZ(0.35)],
+  f: [new THREE.Vector3(-7.5, 2.6, -0.35), new THREE.Vector3(-2.6, 3.0, -0.35), halfPt(true, 0).setZ(-0.35)],
+};
+const qb = (a,b,c,u)=> new THREE.Vector3().copy(a).multiplyScalar((1-u)*(1-u)).addScaledVector(b, 2*(1-u)*u).addScaledVector(c, u*u);
+
+// alvo do bico em voo (fases de chegada e de desenho)
+function tipTarget(key, t){
+  const isF = key === 'f', z = isF ? -0.35 : 0.35;
+  if (t < T_DRAW){ const u = smooth(clamp((t-T_IN)/(T_DRAW-T_IN),0,1)*0.5+0.5)*2-1; const e = ENTRY[key]; return qb(e[0], e[1], e[2], clamp((t-T_IN)/(T_DRAW-T_IN),0,1)); }
+  const u = clamp((t-T_DRAW)/(T_LAND-T_DRAW), 0, 1);
+  return halfPt(isF, u).setZ(z);
+}
+const drawU = t => clamp((t-T_DRAW)/(T_LAND-T_DRAW), 0, 1);
+
+const tmp = new THREE.Vector3();
+function flightOrient(B, key, t){
+  const a = tipTarget(key, t-0.03), b = tipTarget(key, t+0.03), d = b.sub(a);
+  const sp = Math.hypot(d.x, d.y) + 1e-6;
+  const yaw = 0.82*Math.PI/2 * clamp(d.x/sp*2.2, -1, 1);
+  const pitch = clamp(-Math.atan2(d.y, Math.abs(d.x)+0.15*sp)*0.85, -1.15, 1.0);
+  return { yaw, pitch };
+}
+function placeByTip(B, target){
+  for (let i=0;i<3;i++){
+    B.root.updateMatrixWorld(true);
+    B.tip.getWorldPosition(tmp);
+    B.root.position.add(target.clone().sub(tmp));
+  }
+}
+
+let speech = { m:[], f:[] };      // [início, fim] das falas
+let mouthM = [], mouthF = [];
+function poseBird(B, key, t, mouth){
+  const st = STAND[key];
+  const standRoot = new THREE.Vector3(st.x, GROUND + 2.15*B.SC, st.z);
+  let flyAmt = 1;
+  // asas, pernas e corpo em voo
+  if (t < T_LAND){
+    const o = flightOrient(B, key, t);
+    B.yawG.rotation.y = o.yaw; B.pitchG.rotation.x = o.pitch;
+    B.root.position.set(0, 0, 0); B.headPivot.rotation.set(0.15, 0, 0);
+    placeByTip(B, tipTarget(key, t));
+  } else {
+    // pouso: do fim do coração até o lugar em pé
+    const u = smooth(clamp((t-T_LAND)/(T_STAND-T_LAND), 0, 1));
+    const o = flightOrient(B, key, T_LAND-0.001);
+    B.yawG.rotation.y = 0; B.pitchG.rotation.x = 0; B.root.position.set(0,0,0); B.headPivot.rotation.set(0.15,0,0);
+    B.yawG.rotation.y = o.yaw; B.pitchG.rotation.x = o.pitch;
+    placeByTip(B, tipTarget(key, T_LAND-0.001));
+    const from = B.root.position.clone();
+    const ctrl = new THREE.Vector3(lerp(from.x, st.x, 0.85), from.y + 0.6, lerp(from.z, st.z, 0.5));
+    B.root.position.copy(qb(from, ctrl, standRoot, u));
+    B.yawG.rotation.y = lerp(o.yaw, st.yaw, u);
+    B.pitchG.rotation.x = lerp(o.pitch, 0, u);
+    flyAmt = 1 - smooth(clamp((t-(T_STAND-0.45))/0.45, 0, 1));
+  }
+  B.legs.rotation.x = 1.25*flyAmt;
+  const standing = 1 - flyAmt;
+  // respiração e gestos quando em pé
+  const breathe = Math.sin(t*2.2 + (B.female?1:0))*0.03*standing;
+  B.torso.position.y = 2.15 + breathe;
+  B.torso.rotation.z = Math.sin(t*0.9 + (B.female?2:0))*0.03*standing;
+  const me = speech[key], other = speech[key==='m'?'f':'m'];
+  const talking = me.some(([a,b])=>t>a-0.2 && t<b+0.2), otherTalking = other.some(([a,b])=>t>a-0.2 && t<b+0.2);
+  if (standing > 0){
+    const toward = key==='m' ? 0.35 : -0.35;   // olhar para o outro
+    const yawHead = talking ? -st.yaw*0.85 : (otherTalking ? toward : -st.yaw*0.4);
+    B.headPivot.rotation.x = lerp(0.15, -0.08 + Math.sin(t*1.7)*0.06 - mouth*0.12, standing);
+    B.headPivot.rotation.z = Math.sin(t*1.1 + (B.female?1:0))*0.09*standing;
+    B.headPivot.rotation.y = (yawHead + Math.sin(t*0.7)*0.12)*standing;
+    if (talking) B.yawG.rotation.y = lerp(B.yawG.rotation.y, st.yaw*0.55, smooth(clamp(Math.min(t-me.find(([a,b])=>t>a-0.2&&t<b+0.2)[0]+0.2, 1)/0.4,0,1)));
+  }
+  B.lowerPivot.rotation.x = mouth*0.42; B.upper.rotation.x = -mouth*0.08;
+  const bpz = (t + B.blinkOff) % 3.7, blink = bpz < 0.14 ? Math.sin(bpz/0.14*Math.PI) : 0;
+  B.eyes.forEach(e=>{ e.lid.rotation.x = -1.6 + blink*1.45; });
+  // asas: voando batem; em pé, gesto no começo da fala e na comemoração final
+  let open = flyAmt;
+  me.forEach(([a])=>{ if (t>a-0.2 && t<a+1.1) open = Math.max(open, smooth((t-(a-0.2))/0.25)*smooth((a+1.1-t)/0.3)); });
+  if (t > END_FLAP) open = Math.max(open, smooth((t-END_FLAP)/0.3));
+  B.wings.forEach(w=>wingPose(w, t + (B.female?0.4:0), open));
+  B.torso.position.y += standing*open*Math.max(0, Math.sin(t*13))*0.05;
+}
+let END_FLAP = 99;
+
+function renderAt(t, mm, mf){
+  poseBird(male, 'm', t, mm||0);
+  poseBird(fem, 'f', t, mf||0);
+  const u = drawU(t);
+  setTrail(0, u); setTrail(1, u);
+  const fu = clamp((t-T_LAND)/0.8, 0, 1);
+  fillMat.opacity = 0.7*smooth(fu);
+  const beat = t > T_LAND ? 1 + 0.06*Math.pow(Math.max(0, Math.sin((t-T_LAND)*Math.PI*1.4)), 6) : 1;
+  heartG.scale.setScalar(beat);
+  flock.forEach(g=>{ const d = g.userData; const x = ((t*2.2 + d.off*9) % 70) - 35; g.position.set(x, d.y + 4 + Math.sin(t+d.off)*0.4, d.z); g.rotation.y = Math.PI/2; const f = Math.sin(t*9+d.off)*0.7; d.wl.rotation.x = f; d.wr.rotation.x = -f; });
+  renderer.render(scene, camera);
+}
+window.renderAt = renderAt;
+window.setup = (sp, endFlap) => { speech = sp; END_FLAP = endFlap; };
