@@ -62,6 +62,13 @@ _mp = _nt.nodes.new('ShaderNodeMapping'); _mp.inputs['Rotation'].default_value =
 _tc = _nt.nodes.new('ShaderNodeTexCoord'); _nt.links.new(_tc.outputs['Object'], _mp.inputs['Vector']); _nt.links.new(_mp.outputs['Vector'], _w.inputs['Vector'])
 _bp = _nt.nodes.new('ShaderNodeBump'); _bp.inputs['Strength'].default_value = 0.5; _bp.inputs['Distance'].default_value = 0.01
 _nt.links.new(_w.outputs['Fac'], _bp.inputs['Height']); _nt.links.new(_bp.outputs['Normal'], _nt.nodes['Principled BSDF'].inputs['Normal'])
+OUTFIT = __import__('os').environ.get('OUTFIT')
+if OUTFIT == 'camiseta':
+    POLO = mat('camiseta', 0x6f7055, 0.85, bump=0.15, bscale=600)
+    POLO_D = mat('camiseta_borda', 0x74755a, 0.85, bump=0.2, bscale=700)
+    JEANS = mat('moletom', 0x1d1d21, 0.95, bump=0.25, bscale=300)
+    SHOE = mat('chinelo', 0x141414, 0.5)
+    DIAL = mat('mostrador', 0x3a3a3e, 0.15, coat=1.0)
 WALL = mat('fundo', 0xeee4d8, 0.9)
 
 def obj_sphere(loc, scale, m, r=1.0, sub=2, name='s'):
@@ -190,18 +197,25 @@ if not PHOTO:
 capsule((0, 0.01, 1.20), (0, 0.01, 1.36), 0.10, SKIN)                       # pescoço
 torso = obj_sphere((0, 0, 0.93), (0.31, 0.2, 0.38), POLO, name='torso')
 obj_sphere((0, 0.0, 1.13), (0.35, 0.19, 0.14), POLO, name='ombros')
-torus((0, 0.0, 1.26), 0.125, 0.032, POLO_D, rot=(math.radians(-15), 0, 0))  # gola
-for sx in (-1, 1):                                                         # pontas da gola
+torus((0, 0.0, 1.26), 0.125 if not OUTFIT else 0.11, 0.032 if not OUTFIT else 0.018, POLO_D, rot=(math.radians(-15), 0, 0))  # gola
+for sx in ((-1, 1) if not OUTFIT else ()):                                 # pontas da gola
     box((sx * 0.09, -0.13, 1.2), (0.16, 0.014, 0.11), POLO_D, rot=(math.radians(58), 0, sx * math.radians(40)))
-box((0, -0.19, 1.12), (0.05, 0.012, 0.17), POLO_D, rot=(math.radians(-10), 0, 0))   # carcela
-for z in (1.17, 1.09):
+if not OUTFIT: box((0, -0.19, 1.12), (0.05, 0.012, 0.17), POLO_D, rot=(math.radians(-10), 0, 0))   # carcela
+for z in ((1.17, 1.09) if not OUTFIT else ()):
     bpy.ops.mesh.primitive_cylinder_add(radius=0.012, depth=0.006, location=(0, -0.2, z), rotation=(math.radians(80), 0, 0))
     bpy.context.object.data.materials.append(BTN)
 # cintura e jeans
 obj_sphere((0, 0, 0.6), (0.25, 0.18, 0.16), JEANS, name='quadril')
 for sx in (-1, 1):
     capsule((sx * 0.12, 0, 0.56), (sx * 0.125, -0.01, 0.12), 0.1, JEANS, 0.085)
-    obj_sphere((sx * 0.13, -0.06, 0.05), (0.08, 0.15, 0.055), SHOE, name='sapato')
+    if OUTFIT == 'camiseta':
+        torus((sx * 0.124, -0.01, 0.15), 0.085, 0.022, JEANS)                  # punho da calça
+        obj_sphere((sx * 0.13, -0.05, 0.045), (0.072, 0.13, 0.035), SKIN, name='pe')
+        box((sx * 0.13, -0.07, 0.016), (0.17, 0.3, 0.022), SHOE, bevel=0.01)    # sola
+        for yy in (-0.02, -0.11):
+            box((sx * 0.13, yy, 0.06), (0.17, 0.045, 0.03), SHOE, bevel=0.012)  # tiras
+    else:
+        obj_sphere((sx * 0.13, -0.06, 0.05), (0.08, 0.15, 0.055), SHOE, name='sapato')
 
 # braços: direito (lado esquerdo da tela) acenando, esquerdo apoiado com o relógio
 for sx in (-1, 1):
