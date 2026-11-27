@@ -195,8 +195,9 @@ if not PHOTO:
         if _s: _s.levels = _s.render_levels = 2
 # ------------------------------------------------------------------ corpo
 capsule((0, 0.01, 1.20), (0, 0.01, 1.36), 0.10, SKIN)                       # pescoço
-torso = obj_sphere((0, 0, 0.93), (0.31, 0.2, 0.38), POLO, name='torso')
-obj_sphere((0, 0.0, 1.13), (0.35, 0.19, 0.14), POLO, name='ombros')
+torso = capsule((0, 0, 0.74), (0, 0, 1.08), 0.2, POLO, 0.215); torso.scale = (1, 0.72, 1)
+for _o in list(col.objects)[-2:]: _o.scale = (_o.scale[0], _o.scale[1] * 0.72, _o.scale[2])
+obj_sphere((0, 0.0, 1.13), (0.29, 0.16, 0.11), POLO, name='ombros')
 torus((0, 0.0, 1.26), 0.125 if not OUTFIT else 0.11, 0.032 if not OUTFIT else 0.018, POLO_D, rot=(math.radians(-15), 0, 0))  # gola
 for sx in ((-1, 1) if not OUTFIT else ()):                                 # pontas da gola
     box((sx * 0.09, -0.13, 1.2), (0.16, 0.014, 0.11), POLO_D, rot=(math.radians(58), 0, sx * math.radians(40)))
@@ -205,38 +206,40 @@ for z in ((1.17, 1.09) if not OUTFIT else ()):
     bpy.ops.mesh.primitive_cylinder_add(radius=0.012, depth=0.006, location=(0, -0.2, z), rotation=(math.radians(80), 0, 0))
     bpy.context.object.data.materials.append(BTN)
 # cintura e jeans
-obj_sphere((0, 0, 0.6), (0.25, 0.18, 0.16), JEANS, name='quadril')
+obj_sphere((0, 0, 0.64), (0.2, 0.145, 0.13), JEANS, name='quadril')
 for sx in (-1, 1):
-    capsule((sx * 0.12, 0, 0.56), (sx * 0.125, -0.01, 0.12), 0.1, JEANS, 0.085)
+    capsule((sx * 0.095, 0, 0.6), (sx * 0.1, -0.01, 0.12), 0.08, JEANS, 0.068)
     if OUTFIT == 'camiseta':
-        torus((sx * 0.124, -0.01, 0.15), 0.085, 0.022, JEANS)                  # punho da calça
-        obj_sphere((sx * 0.13, -0.05, 0.045), (0.072, 0.13, 0.035), SKIN, name='pe')
-        box((sx * 0.13, -0.07, 0.016), (0.17, 0.3, 0.022), SHOE, bevel=0.01)    # sola
+        torus((sx * 0.1, -0.01, 0.15), 0.068, 0.02, JEANS)                  # punho da calça
+        obj_sphere((sx * 0.105, -0.05, 0.045), (0.065, 0.13, 0.035), SKIN, name='pe')
+        box((sx * 0.105, -0.07, 0.016), (0.15, 0.3, 0.022), SHOE, bevel=0.01)    # sola
         for yy in (-0.02, -0.11):
-            box((sx * 0.13, yy, 0.06), (0.17, 0.045, 0.03), SHOE, bevel=0.012)  # tiras
+            box((sx * 0.105, yy, 0.06), (0.15, 0.045, 0.03), SHOE, bevel=0.012)  # tiras
     else:
         obj_sphere((sx * 0.13, -0.06, 0.05), (0.08, 0.15, 0.055), SHOE, name='sapato')
 
 # braços: direito (lado esquerdo da tela) acenando, esquerdo apoiado com o relógio
 for sx in (-1, 1):
-    obj_sphere((sx * 0.32, 0.0, 1.1), (0.11, 0.11, 0.11), POLO, name='manga')
-capsule((-0.31, 0, 1.1), (-0.42, -0.015, 1.1), 0.088, POLO, 0.084)
-capsule((0.31, 0, 1.1), (0.4, -0.005, 0.98), 0.088, POLO, 0.084)
+    obj_sphere((sx * 0.27, 0.0, 1.1), (0.09, 0.09, 0.095), POLO, name='manga')
+capsule((-0.26, 0, 1.1), (-0.36, -0.015, 1.1), 0.075, POLO, 0.07)
+capsule((0.26, 0, 1.1), (0.34, -0.005, 0.98), 0.075, POLO, 0.07)
 # acenando
-capsule((-0.37, 0, 1.04), (-0.53, -0.04, 1.2), 0.065, SKIN, 0.06)
-capsule((-0.53, -0.04, 1.2), (-0.6, -0.08, 1.46), 0.06, SKIN, 0.053)
-obj_sphere((-0.63, -0.09, 1.53), (0.065, 0.035, 0.085), SKIN, name='mao_d')
+_before = set(col.objects)
+capsule((-0.32, 0, 1.06), (-0.47, -0.04, 1.2), 0.05, SKIN, 0.046)
+capsule((-0.47, -0.04, 1.2), (-0.54, -0.08, 1.46), 0.046, SKIN, 0.042)
+obj_sphere((-0.555, -0.09, 1.52), (0.055, 0.032, 0.075), SKIN, name='mao_d')
 for i, a in enumerate((-0.35, -0.12, 0.1, 0.3)):
-    capsule((-0.63 + 0.04 * math.sin(a), -0.09, 1.58), (-0.63 + 0.12 * math.sin(a), -0.095, 1.58 + 0.07 * math.cos(a)), 0.016, SKIN, 0.014)
-capsule((-0.60, -0.1, 1.5), (-0.55, -0.13, 1.55), 0.02, SKIN, 0.017)
+    capsule((-0.555 + 0.04 * math.sin(a), -0.09, 1.565), (-0.555 + 0.12 * math.sin(a), -0.095, 1.565 + 0.07 * math.cos(a)), 0.014, SKIN, 0.012)
+capsule((-0.525, -0.1, 1.49), (-0.48, -0.13, 1.54), 0.02, SKIN, 0.017)
+ARM_OBJS = [o for o in col.objects if o not in _before]
 # apoiado na cintura
-capsule((0.38, 0, 1.0), (0.46, -0.02, 0.8), 0.065, SKIN, 0.06)
-capsule((0.46, -0.02, 0.8), (0.32, -0.12, 0.7), 0.058, SKIN, 0.052)
-obj_sphere((0.28, -0.14, 0.7), (0.055, 0.045, 0.065), SKIN, name='mao_e')
-torus((0.355, -0.1, 0.72), 0.063, 0.018, STEEL, rot=(0, math.radians(90), math.radians(-25)))
-bpy.ops.mesh.primitive_cylinder_add(radius=0.04, depth=0.03, location=(0.36, -0.162, 0.725), rotation=(math.radians(80), 0, math.radians(-25)))
+capsule((0.32, 0, 1.0), (0.38, -0.02, 0.8), 0.05, SKIN, 0.046)
+capsule((0.38, -0.02, 0.8), (0.26, -0.1, 0.72), 0.045, SKIN, 0.04)
+obj_sphere((0.22, -0.12, 0.72), (0.05, 0.04, 0.06), SKIN, name='mao_e')
+torus((0.29, -0.08, 0.735), 0.063, 0.018, STEEL, rot=(0, math.radians(90), math.radians(-25)))
+bpy.ops.mesh.primitive_cylinder_add(radius=0.04, depth=0.03, location=(0.295, -0.128, 0.74), rotation=(math.radians(80), 0, math.radians(-25)))
 bpy.context.object.data.materials.append(DIAL)
-torus((0.36, -0.177, 0.725), 0.042, 0.009, STEEL, rot=(math.radians(80), 0, math.radians(-25)))
+torus((0.295, -0.143, 0.74), 0.042, 0.009, STEEL, rot=(math.radians(80), 0, math.radians(-25)))
 
 # ------------------------------------------------------------------ cenário e luz
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0, 4, 0)); bpy.context.object.data.materials.append(WALL)
@@ -269,5 +272,31 @@ import os
 if os.environ.get('CLOSE'):
     cam.location=(0,-2.2,1.45); cam.data.lens=70; cam.rotation_euler=(Vector((0,0,1.45))-cam.location).to_track_quat('-Z','Y').to_euler(); cam.data.dof.focus_distance=1.95
 scene.render.filepath = OUT
-bpy.ops.render.render(write_still=True)
-print('OK', OUT)
+ANIM = int(__import__('os').environ.get('ANIM', '0'))
+if not ANIM:
+    bpy.ops.render.render(write_still=True)
+    print('OK', OUT)
+else:
+    def pivot(name, loc, objs):
+        e = bpy.data.objects.new(name, None); col.objects.link(e); e.location = loc
+        bpy.context.view_layer.update()
+        for o in objs:
+            if o.parent is None:
+                mw = o.matrix_world.copy(); o.parent = e; o.matrix_parent_inverse = e.matrix_world.inverted()
+        return e
+    bpy.context.view_layer.update()
+    head = [o for o in col.objects if o.name.startswith('cabeca_foto')]
+    arm = pivot('ombro', (-0.3, 0, 1.08), ARM_OBJS)
+    hd = pivot('pescoco', (0, -0.1, 1.24), head)
+    body = [o for o in col.objects if o.type == 'MESH' and o.parent is None and o.data.materials and o.data.materials[0].name != 'fundo']
+    root = pivot('raiz', (0, 0, 0), body + [arm, hd])
+    for f in range(ANIM):
+        t = f / 30.0
+        w = math.sin(2 * math.pi * 1.6 * t)
+        arm.rotation_euler = (0, math.radians(-18) * w, math.radians(5) * w)
+        hd.rotation_euler = (math.radians(3) * math.sin(2 * math.pi * 0.9 * t + 1), math.radians(5) * math.sin(2 * math.pi * 0.8 * t), math.radians(6) * math.sin(2 * math.pi * 0.55 * t))
+        root.location = (0, 0, 0.012 * abs(math.sin(2 * math.pi * 0.8 * t)))
+        root.rotation_euler = (0, math.radians(1.5) * math.sin(2 * math.pi * 0.4 * t), 0)
+        scene.render.filepath = OUT + '%04d.png' % f
+        bpy.ops.render.render(write_still=True)
+        print('QUADRO', f, flush=True)
