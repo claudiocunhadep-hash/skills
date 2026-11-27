@@ -307,7 +307,8 @@ if SHOT == 3:
 
     # mouth da notícia (começa aos 3,4 s desta cena)
     SPEAK0 = 3.4
-    MOUTH3 = json.load(open(os.path.join(HERE, 'mouth_viaduto.json'))) if os.path.exists(os.path.join(HERE, 'mouth_viaduto.json')) else []
+    MF = os.path.join(HERE, os.environ.get('MOUTH', 'mouth_viaduto.json'))
+    MOUTH3 = json.load(open(MF)) if os.path.exists(MF) else []
     PERCH = Vector((5.82, 0.6, DECK_Z + 0.95))     # em cima do guarda-corpo
     YAW_P = math.radians(160)
     Q0 = Vector((60, 12, 15)); Q1 = Vector((30, 6, 11)); Q2 = Vector((12, 1.8, 8.4))
