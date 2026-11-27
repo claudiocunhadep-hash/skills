@@ -182,6 +182,15 @@ if SHOT == 1:
         aim_cam(pos + Vector((0.1, 0, 0.35)), 42)
 
 # ================================================================== CENA 3: viaduto na BR-010
+DUPLA = os.environ.get('DUPLA')
+if DUPLA:   # segundo guará (fêmea): mesmo modelo, um pouco menor e com bico mais curto
+    _own = open(os.path.abspath(__file__), encoding='utf-8').read().split('\n')
+    NS2 = dict(globals())
+    exec(lines(26, 465), NS2)
+    exec('\n'.join(_own[19:62]) + '\n', NS2)
+    bird2 = NS2['bird']; set_bird2 = NS2['set_bird']
+    bird2.scale = (0.88, 0.88, 0.88)
+    NS2['beak_root'].scale = tuple(float(v) for v in os.environ.get('BEAK', '0.82,1,1').split(','))
 if SHOT == 3:
     scene.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.3
     ASF = noise_mat('asfalto', 0x1e1e1f, 0x38383a, 40, 0.85, 0.15)
@@ -358,6 +367,90 @@ if SHOT == 3:
         cam_d.dof.aperture_fstop = 3.5
         tgt = center.lerp(PERCH + Vector((0, 0, 0.75)), smooth((t - 1.5) / 1.5))
         aim_cam(tgt, lerp(24, 42, smooth((t - 1.4) / 2.2)))
+
+    if DUPLA:
+        MM = json.load(open(os.path.join(HERE, 'mouth_eco_m.json'))); MFm = json.load(open(os.path.join(HERE, 'mouth_eco_f.json')))
+        PM = Vector((5.82, 0.25, DECK_Z + 0.95)); PF = Vector((5.82, 1.0, DECK_Z + 0.95))
+        SPK_F, SPK_M = 0.6, 5.1
+        cam.location = Vector((3.4, 0.62, DECK_Z + 1.8))
+        def frame(t):
+            for c in cars:
+                par = c[0]
+                if c[1] is None:
+                    _, _, xl, dr, sp, off = c
+                    y = ((off + sp * t * dr) + 60) % 120 - 60
+                    par.location = (xl, y, DECK_Z + 0.06); par.rotation_euler = (0, 0, math.radians(90 if dr > 0 else -90))
+                else:
+                    _, x0, ly, dr, sp = c
+                    par.location = (x0 + dr * sp * t, ly, 0.05); par.rotation_euler = (0, 0, 0 if dr > 0 else math.pi)
+            k = smooth((t - 4.5) / 0.6)
+            for (sb, P, yaw, MO, s0, lk_speak, lk_listen, sgn) in (
+                    (set_bird, PM, math.radians(160), MM, SPK_M, math.radians(18), math.radians(40), 1),
+                    (set_bird2, PF, math.radians(200), MFm, SPK_F, math.radians(-18), math.radians(-40), -1)):
+                fi = int(t * FPS); mouth = MO[fi] if fi < len(MO) else 0.0
+                gest = math.sin(math.pi * (t - s0) / 1.3) if s0 < t < s0 + 1.3 else 0.0
+                wing = (0.0, (10, 10), 0.0, 10, 0.0)
+                if gest > 0: wing = (35 + 25 * math.sin(2 * math.pi * 2.5 * (t - s0)), (14, 12), 30, 20, 0.0)
+                if sgn > 0: look = lerp(lk_listen, lk_speak, k)
+                else: look = lerp(lk_speak, lk_listen, k)
+                look += math.radians(5) * math.sin(t * 1.3 + (0 if sgn > 0 else 2))
+                nod = math.radians(4) * math.sin(t * 2.0 + (0 if sgn > 0 else 1.3)) + mouth * math.radians(5)
+                sb(P.copy(), yaw, 0.0, 0.0, 1.0, 1.0 * (1 - 0.55 * gest), wing, look, nod, mouth, t + 5.0, 0.0)
+            cam_d.dof.aperture_fstop = 4.0
+            aim_cam(Vector((5.82, 0.62, DECK_Z + 1.45)), lerp(30, 34, smooth(t / 26)))
+
+if SHOT == 4:   # os dois guarás num tronco à beira d'água, ao amanhecer
+    W_MAT = noise_mat('agua', 0x1b4a63, 0x2a6f86, 3, 0.06, 0.25)
+    bpy.ops.mesh.primitive_plane_add(size=400, location=(150, 0, -0.45)); bpy.context.object.data.materials.append(W_MAT)
+    OCEANO = os.environ.get('OCEANO')
+    BANK = noise_mat('margem', 0x1f3315, 0x2e4a1c, 0.5, 0.9)
+    if OCEANO:
+        SAND = noise_mat('areia', 0xc9b48f, 0xe0cfaa, 40, 0.9, 0.3)
+        bpy.ops.mesh.primitive_plane_add(size=1, location=(-1.2, 0, -0.36)); o = bpy.context.object; o.scale = (4.0, 40, 1); o.data.materials.append(SAND)
+        o.rotation_euler = (0, math.radians(4), 0)
+        WAVE = noise_mat('espuma', 0xeef2f0, 0xffffff, 30, 0.4)
+        for x in ():
+            bpy.ops.mesh.primitive_plane_add(size=1, location=(x, 0, -0.43)); o = bpy.context.object; o.scale = (0.08 + 0.04 * x / 5, 40, 1); o.data.materials.append(WAVE)
+        palm(9, 6.5, h=6.5, sc=1.1); palm(11, 8.5, h=7.5, sc=1.2); palm(8, -9, h=6, sc=1.0)
+    for i in range(0 if OCEANO else 220):
+        palm(random.uniform(60, 95), random.uniform(-80, 80), h=random.uniform(3.5, 8), sc=random.uniform(0.9, 1.5))
+    for i in range(0 if OCEANO else 160):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=random.uniform(1.5, 3.5), location=(random.uniform(58, 66), random.uniform(-80, 80), random.uniform(-0.6, 0.6)))
+        bpy.context.object.data.materials.append(BANK)
+    LOG = noise_mat('tronco_seco', 0x5a4636, 0x7a6450, 12, 0.85, 0.5)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.09, depth=2.6, location=(0.02, 0, -0.085), rotation=(math.radians(90), 0, math.radians(4)))
+    o = bpy.context.object; o.data.materials.append(LOG); bpy.ops.object.shade_smooth()
+    for y in (-1.0, 1.1):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.06, depth=1.0, location=(0.02, y, -0.55)); bpy.context.object.data.materials.append(LOG)
+    sun_d.energy = 3.6; scene.view_settings.exposure = -0.3
+    PM = Vector((0.0, -0.26, 0.0)); PF = Vector((0.0, 0.27, 0.0))
+    FALAS = os.environ.get('FALAS')
+    if FALAS:
+        _fd = json.load(open(FALAS)); MM, MFm = _fd['m'], _fd['f']
+        IV = {'m': [(p_[2], p_[3]) for p_ in _fd['plan'] if p_[0][0] == 'm'], 'f': [(p_[2], p_[3]) for p_ in _fd['plan'] if p_[0][0] == 'f']}
+    else:
+        MM = json.load(open(os.path.join(HERE, 'mouth_eco_m.json'))); MFm = json.load(open(os.path.join(HERE, 'mouth_eco_f.json')))
+        IV = {'m': [(5.1, 25.9)], 'f': [(0.6, 4.85)]}
+    def falando(who, t):
+        return max([smooth((t - a_ + 0.3) / 0.4) * (1 - smooth((t - b_) / 0.4)) for a_, b_ in IV[who]] + [0.0])
+    cam.location = Vector((-2.15, 0.0, 0.62))
+    def frame(t):
+        for (sb, P, yaw, MO, who, other, lk_speak, lk_listen, sgn) in (
+                (set_bird, PM, math.radians(158), MM, 'm', 'f', math.radians(16), math.radians(38), 1),
+                (set_bird2, PF, math.radians(202), MFm, 'f', 'm', math.radians(-16), math.radians(-38), -1)):
+            fi = int(t * FPS); mouth = MO[fi] if fi < len(MO) else 0.0
+            gest = 0.0; s0 = 0.0
+            for a_, b_ in IV[who]:
+                if a_ < t < a_ + 1.3: gest = math.sin(math.pi * (t - a_) / 1.3); s0 = a_
+            wing = (0.0, (10, 10), 0.0, 10, 0.0)
+            if gest > 0: wing = (35 + 25 * math.sin(2 * math.pi * 2.5 * (t - s0)), (14, 12), 30, 20, 0.0)
+            sp_, li_ = falando(who, t), falando(other, t)
+            look = lk_speak * 0.6 + (lk_speak - lk_speak * 0.6) * sp_ + (lk_listen - lk_speak * 0.6) * li_ * (1 - sp_)
+            look += math.radians(5) * math.sin(t * 1.3 + (0 if sgn > 0 else 2))
+            nod = math.radians(4) * math.sin(t * 2.0 + (0 if sgn > 0 else 1.3)) + mouth * math.radians(5)
+            sb(P.copy(), yaw, 0.0, 0.0, 1.0, 1.0 * (1 - 0.55 * gest), wing, look, nod, mouth, t + 5.0, 0.0)
+        cam_d.dof.aperture_fstop = 2.8
+        aim_cam(Vector((0.0, 0.0, 0.42)), lerp(46, 50, smooth(t / 26)))
 
 os.makedirs(OUT, exist_ok=True)
 for f in range(F0, F1 + 1):
