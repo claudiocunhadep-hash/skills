@@ -51,7 +51,7 @@ def set_bird(pos, yaw, pitch, fly, legs_down, fold, wing, look=0.0, nod=0.0, mou
     fwd = (hf - hb).normalized()
     Rh = Matrix.Rotation(look, 3, 'Z') @ Matrix.Rotation(nod, 3, 'Y')
     head.matrix_basis = frame_from(Rh @ fwd, Rh @ Vector((0, 0, 1)), hb.lerp(hf, 0.55))
-    low_pivot.rotation_euler = (0, math.radians(14) * mouth, 0)
+    low_pivot.rotation_euler = (0, math.radians(7) * mouth, 0)
     place_feathers(fold, phi, psi, hphi, hpsi, flare)
     for o in bpy.data.objects:
         if 'tail' in o.keys():
@@ -469,7 +469,23 @@ if SHOT == 4:   # os dois guarás num tronco à beira d'água, ao amanhecer
             cam_d.dof.aperture_fstop = 2.8; aim_cam(tgt, lerp(40, 55, k)); return
         if os.environ.get('CLOSE'):
             bpy.context.view_layer.update(); hp = (NS2['head'] if os.environ.get('CLOSE') == 'f' else head).matrix_world.translation.copy(); cam.location = hp + Vector((-0.3, -0.28 if os.environ.get('CLOSE') == 'm' else 0.28, 0.03)); aim_cam(hp, 70); return
-        aim_cam(Vector((0.0, 0.0, 0.42)), lerp(46, 50, smooth(t / 26)))
+        if os.environ.get('SEGUE', '1') == '1' and FALAS:
+            # câmera: abre nos dois, depois chega perto de quem está falando e troca a cada fala
+            segs = sorted([(p_[2], p_[0][0]) for p_ in _fd['plan']]); t_end = max(p_[3] for p_ in _fd['plan'])
+            wf = 1.0 if segs[0][1] == 'f' else 0.0
+            for i_, (b_, who_) in enumerate(segs[1:]):
+                wf = lerp(wf, 1.0 if who_ == 'f' else 0.0, smooth((t - (b_ - 0.35)) / 0.7))
+            c = smooth((t - 0.5) / 1.2) * (1 - smooth((t - (t_end + 0.1)) / 0.9))
+            bpy.context.view_layer.update()
+            hm = head.matrix_world.translation.copy(); hf = NS2['head'].matrix_world.translation.copy()
+            hp = hm.lerp(hf, wf)
+            side = lerp(-0.18, 0.18, wf)
+            close_loc = hp + Vector((-0.95, side, 0.02)); close_tgt = hp + Vector((0, 0, -0.07))
+            wide_loc = Vector((-2.15, 0.0, 0.62)); wide_tgt = Vector((0.0, 0.0, 0.42))
+            cam.location = wide_loc.lerp(close_loc, c)
+            aim_cam(wide_tgt.lerp(close_tgt, c), lerp(46, 52, c))
+        else:
+            aim_cam(Vector((0.0, 0.0, 0.42)), lerp(46, 50, smooth(t / 26)))
 
 os.makedirs(OUT, exist_ok=True)
 for f in range(F0, F1 + 1):

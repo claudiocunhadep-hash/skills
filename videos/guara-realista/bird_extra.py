@@ -15,8 +15,8 @@ for o in list(bpy.data.objects):
     if o.parent == bird and o is not tronco and o.name.split('.')[0] != 'perna':
         o.parent = tronco
 
-SCLERA, _ = principled('olho_claro', 0xe8dcc0, 0.45, **{'Coat Weight': 0.2})
-IRIS_M, _ = principled('iris', 0x2b160b, 0.1, **{'Coat Weight': 1.0})
+SCLERA, _ = principled('olho_claro', 0xf3ede0, 0.4, **{'Coat Weight': 0.25})
+IRIS_M, _ = principled('iris', 0x3a1f0e, 0.3, **{'Coat Weight': 0.5})
 PUPIL_M, _ = principled('pupila', 0x030202, 0.05, **{'Coat Weight': 1.0})
 
 def _sphere(name, r, mat, parent, keep=None):
@@ -32,7 +32,8 @@ for _o in [c for c in bpy.data.objects if c.parent == head and c.name.split('.')
 EYES = []
 for s in (-1, 1):
     piv = bpy.data.objects.new('olho_piv', None); col.objects.link(piv); piv.parent = head
-    piv.location = (0.012, 0.0168 * s, 0.0065)
+    piv.location = (0.012, 0.0155 * s, 0.0075)
+    _E = float(os.environ.get('EYE_SCALE', '1.6')); piv.scale = (_E, _E, _E)
     ball = _sphere('olho_globo', 0.0068, SCLERA, piv)
     gaze = bpy.data.objects.new('olhar', None); col.objects.link(gaze); gaze.parent = piv
     iris = _sphere('iris', 1.0, IRIS_M, gaze); iris.scale = (0.0048, 0.0014, 0.0048); iris.location = (0.0008, 0.0058 * s, 0)
