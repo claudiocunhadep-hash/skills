@@ -447,6 +447,8 @@ if SHOT == 4:   # os dois guarás num tronco à beira d'água, ao amanhecer
             if gest > 0: wing = (35 + 25 * math.sin(2 * math.pi * 2.5 * (t - s0)), (14, 12), 30, 20, 0.0)
             sp_, li_ = falando(who, t), falando(other, t)
             look = lk_speak * 0.6 + (lk_speak - lk_speak * 0.6) * sp_ + (lk_listen - lk_speak * 0.6) * li_ * (1 - sp_)
+            if os.environ.get('SOLO') and who == 'm':   # mostrando o visual: vira a cabeça de um lado para o outro
+                look = math.radians(10) + math.radians(32) * math.sin(2 * math.pi * (t - 1.0) / 4.2) * smooth((t - 1.6) / 0.8)
             look += math.radians(5) * math.sin(t * 1.3 + (0 if sgn > 0 else 2))
             nod = math.radians(4) * math.sin(t * 2.0 + (0 if sgn > 0 else 1.3)) + mouth * math.radians(5)
             sb(P.copy(), yaw, 0.0, 0.0, 1.0, 1.0 * (1 - 0.55 * gest), wing, look, nod, mouth, t + 5.0, 0.0)
@@ -458,6 +460,13 @@ if SHOT == 4:   # os dois guarás num tronco à beira d'água, ao amanhecer
             gp = math.radians(5) * math.sin(t * 2.3 + sgn) * sp_
             se(op, gy, gp)
         cam_d.dof.aperture_fstop = 2.8
+        if os.environ.get('SOLO'):
+            bpy.context.view_layer.update(); hp = head.matrix_world.translation.copy(); bc = bird.matrix_world.translation + Vector((0, 0, 0.42))
+            k = smooth((t - 0.3) / 5.5)
+            dirc = Vector((math.cos(math.radians(158 + 12)), math.sin(math.radians(158 + 12)), 0))
+            tgt = bc.lerp(hp + Vector((0, 0, -0.03)), k)
+            cam.location = tgt + dirc * lerp(1.7, 0.55, k) + Vector((0, 0, lerp(0.05, 0.02, k)))
+            cam_d.dof.aperture_fstop = 2.8; aim_cam(tgt, lerp(40, 55, k)); return
         if os.environ.get('CLOSE'):
             bpy.context.view_layer.update(); hp = (NS2['head'] if os.environ.get('CLOSE') == 'f' else head).matrix_world.translation.copy(); cam.location = hp + Vector((-0.3, -0.28 if os.environ.get('CLOSE') == 'm' else 0.28, 0.03)); aim_cam(hp, 70); return
         aim_cam(Vector((0.0, 0.0, 0.42)), lerp(46, 50, smooth(t / 26)))
