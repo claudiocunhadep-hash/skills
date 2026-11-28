@@ -17,10 +17,8 @@ exec(lines(575, 592))          # câmera e render
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-tronco = bpy.data.objects.new('tronco', None); col.objects.link(tronco); tronco.parent = bird; tronco.location = (0, 0, -0.09)
-for o in list(bpy.data.objects):
-    if o.parent == bird and o is not tronco and o.name.split('.')[0] != 'perna':
-        o.parent = tronco
+EXTRA = open(os.path.join(HERE, 'bird_extra.py'), encoding='utf-8').read()
+exec(EXTRA)
 
 # ------------------------------------------------------------------ pose genérica do guará
 def wings_flap(t, freq=3.1, amp=48):
@@ -187,7 +185,10 @@ if DUPLA:   # segundo guará (fêmea): mesmo modelo, um pouco menor e com bico m
     _own = open(os.path.abspath(__file__), encoding='utf-8').read().split('\n')
     NS2 = dict(globals())
     exec(lines(26, 465), NS2)
-    exec('\n'.join(_own[19:62]) + '\n', NS2)
+    exec(EXTRA, NS2)
+    _src = '\n'.join(_own); _i0 = _src.index('def set_bird('); _i1 = _src.index('def aim_cam(')
+    exec(_src[_i0:_i1], NS2)
+    set_eyes2 = NS2['set_eyes']
     bird2 = NS2['bird']; set_bird2 = NS2['set_bird']
     bird2.scale = (0.88, 0.88, 0.88)
     NS2['beak_root'].scale = tuple(float(v) for v in os.environ.get('BEAK', '0.82,1,1').split(','))
@@ -435,9 +436,9 @@ if SHOT == 4:   # os dois guarás num tronco à beira d'água, ao amanhecer
         return max([smooth((t - a_ + 0.3) / 0.4) * (1 - smooth((t - b_) / 0.4)) for a_, b_ in IV[who]] + [0.0])
     cam.location = Vector((-2.15, 0.0, 0.62))
     def frame(t):
-        for (sb, P, yaw, MO, who, other, lk_speak, lk_listen, sgn) in (
-                (set_bird, PM, math.radians(158), MM, 'm', 'f', math.radians(16), math.radians(38), 1),
-                (set_bird2, PF, math.radians(202), MFm, 'f', 'm', math.radians(-16), math.radians(-38), -1)):
+        for (sb, se, P, yaw, MO, who, other, lk_speak, lk_listen, sgn) in (
+                (set_bird, set_eyes, PM, math.radians(158), MM, 'm', 'f', math.radians(16), math.radians(38), 1),
+                (set_bird2, set_eyes2, PF, math.radians(202), MFm, 'f', 'm', math.radians(-16), math.radians(-38), -1)):
             fi = int(t * FPS); mouth = MO[fi] if fi < len(MO) else 0.0
             gest = 0.0; s0 = 0.0
             for a_, b_ in IV[who]:
@@ -449,7 +450,16 @@ if SHOT == 4:   # os dois guarás num tronco à beira d'água, ao amanhecer
             look += math.radians(5) * math.sin(t * 1.3 + (0 if sgn > 0 else 2))
             nod = math.radians(4) * math.sin(t * 2.0 + (0 if sgn > 0 else 1.3)) + mouth * math.radians(5)
             sb(P.copy(), yaw, 0.0, 0.0, 1.0, 1.0 * (1 - 0.55 * gest), wing, look, nod, mouth, t + 5.0, 0.0)
+            # olhos: arregalam ao falar (mais nas sílabas fortes), piscam de vez em quando e passeiam o olhar
+            op = 1.0 + 0.35 * sp_ + 0.3 * mouth * sp_
+            per = 3.1 if sgn > 0 else 3.7; ph = (t + (0.0 if sgn > 0 else 1.4)) % per
+            if ph < 0.16: op *= abs(ph - 0.08) / 0.08
+            gy = math.radians(9) * math.sin(t * 1.7 + sgn) * sp_ + math.radians(6) * math.sin(t * 0.6 + 2 * sgn)
+            gp = math.radians(5) * math.sin(t * 2.3 + sgn) * sp_
+            se(op, gy, gp)
         cam_d.dof.aperture_fstop = 2.8
+        if os.environ.get('CLOSE'):
+            bpy.context.view_layer.update(); hp = (NS2['head'] if os.environ.get('CLOSE') == 'f' else head).matrix_world.translation.copy(); cam.location = hp + Vector((-0.3, -0.28 if os.environ.get('CLOSE') == 'm' else 0.28, 0.03)); aim_cam(hp, 70); return
         aim_cam(Vector((0.0, 0.0, 0.42)), lerp(46, 50, smooth(t / 26)))
 
 os.makedirs(OUT, exist_ok=True)
